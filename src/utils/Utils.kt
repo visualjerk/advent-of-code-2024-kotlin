@@ -11,5 +11,5 @@ fun readInput(dayName: String): List<String> {
 
 fun readIntInput(dayName: String): List<List<Int>> {
     val input = readInput(dayName)
-    return input.map { it.split(Regex("\\s+")).map { it.toInt() } }
+    return input.map { s -> s.split(Regex("\\s+")).map { it.toInt() } }
 }
