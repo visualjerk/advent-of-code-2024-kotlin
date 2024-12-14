@@ -1,14 +1,12 @@
 package day2
 
-import utils.readInput
+import utils.readIntInput
 
 fun main() {
-    val input = readInput( "day2")
+    val input = readIntInput( "day2")
     var safeReportCount = 0
 
-    for (line in input) {
-        val report = line.split(Regex("\\s+")).map { it.toInt() }
-
+    for (report in input) {
         if (isReportSafeWithProblemDampener(report)) {
             safeReportCount += 1
         }

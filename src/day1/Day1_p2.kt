@@ -1,16 +1,15 @@
 package day1
 
-import utils.readInput
+import utils.readIntInput
 
 fun main() {
-    val input = readInput( "day1")
+    val input = readIntInput( "day1")
     val numbers = mutableListOf<Int>()
     val numberAppearances = mutableMapOf<Int, Int>()
 
-    for (line in input) {
-        val lineItems = line.split(Regex("\\s+"))
-        val firstNumber = lineItems[0].toInt()
-        val secondNumber = lineItems[1].toInt()
+    for (lineItems in input) {
+        val firstNumber = lineItems[0]
+        val secondNumber = lineItems[1]
 
         numbers.add(firstNumber)
 
