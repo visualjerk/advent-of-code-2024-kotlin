@@ -1,7 +1,6 @@
-package day1_p2
+package day1
 
 import utils.readInput
-import kotlin.math.abs
 
 fun main() {
     val input = readInput( "day1")
