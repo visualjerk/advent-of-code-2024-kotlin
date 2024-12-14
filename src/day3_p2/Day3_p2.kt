@@ -1,22 +1,16 @@
-package day3
+package day3_p2
 
 import utils.readInput
 
 fun main() {
     val input = readInput( "day3")
 
-    val expressions = mutableListOf<Expression>()
-    for (codeLine in input) {
-        val tokens = tokenizeLine(codeLine)
-        expressions.addAll(parseLine(tokens))
-    }
+    val tokens = tokenizeInput(input.joinToString (separator = "\n"))
+    val expressions = parseTokens(tokens)
 
-    var output = 0
-    for (expression in expressions) {
-        output += expression.evaluate()
-    }
+    val program = DoExpression(tokens, expressions)
 
-    println(output)
+    println(program.evaluate())
 }
 
 enum class TokenType {
@@ -25,6 +19,24 @@ enum class TokenType {
         override fun getToken(line: String): Token? {
             if (line.startsWith(marker)) {
                 return Token(MUL, marker)
+            }
+            return null
+        }
+    },
+    DONT {
+        val marker = "don't()"
+        override fun getToken(line: String): Token? {
+            if (line.startsWith(marker)) {
+                return Token(DONT, marker)
+            }
+            return null
+        }
+    },
+    DO {
+        val marker = "do()"
+        override fun getToken(line: String): Token? {
+            if (line.startsWith(marker)) {
+                return Token(DO, marker)
             }
             return null
         }
@@ -83,28 +95,28 @@ enum class TokenType {
 
 data class Token (val type: TokenType, val value: String)
 
-fun tokenizeLine(line: String): List<Token> {
-    var remainingLine = line
+fun tokenizeInput(input: String): List<Token> {
+    var remainingInput = input
     val tokens = mutableListOf<Token>()
 
-    while (remainingLine.isNotEmpty()) {
-        val token = getNextToken(remainingLine)
+    while (remainingInput.isNotEmpty()) {
+        val token = getNextToken(remainingInput)
         tokens.add(token)
-        remainingLine = remainingLine.drop(token.value.length)
+        remainingInput = remainingInput.drop(token.value.length)
     }
 
     return tokens
 }
 
-fun getNextToken(linePart: String): Token {
+fun getNextToken(part: String): Token {
     for (tokenType in TokenType.entries) {
-        val token = tokenType.getToken(linePart)
+        val token = tokenType.getToken(part)
 
         if (token != null) {
             return token
         }
     }
-    throw Exception("Line could not be parsed: $linePart")
+    throw Exception("part could not be tokenized: $part")
 }
 
 interface Expression {
@@ -122,7 +134,75 @@ data class MulExpression (
     }
 }
 
+data class DoExpression (
+    override val tokens: List<Token>,
+    val expressions: List<Expression>
+): Expression {
+    override fun evaluate(): Int {
+        var output = 0
+        for (expression in expressions) {
+            output += expression.evaluate()
+        }
+        return output
+    }
+}
+
+data class DontExpression (
+    override val tokens: List<Token>,
+    val expressions: List<Expression>
+): Expression {
+    override fun evaluate(): Int {
+        return 0
+    }
+}
+
 enum class ExpressionType {
+    DO {
+        override fun getExpression(tokens: List<Token>): Expression? {
+            if (tokens[0].type != TokenType.DO) {
+                return null
+            }
+
+            var remainingTokens = tokens.drop(1)
+            val innerTokens = mutableListOf<Token>()
+
+            while (
+                remainingTokens.isNotEmpty() &&
+                remainingTokens[0].type != TokenType.DO &&
+                remainingTokens[0].type != TokenType.DONT
+            ) {
+                innerTokens.add(remainingTokens[0])
+                remainingTokens = remainingTokens.drop(1)
+            }
+
+            val innerExpressions = parseTokens(innerTokens)
+
+            return DoExpression(innerTokens, innerExpressions)
+        }
+    },
+    DONT {
+        override fun getExpression(tokens: List<Token>): Expression? {
+            if (tokens[0].type != TokenType.DONT) {
+                return null
+            }
+
+            var remainingTokens = tokens.drop(1)
+            val innerTokens = mutableListOf<Token>()
+
+            while (
+                remainingTokens.isNotEmpty() &&
+                remainingTokens[0].type != TokenType.DO &&
+                remainingTokens[0].type != TokenType.DONT
+            ) {
+                innerTokens.add(remainingTokens[0])
+                remainingTokens = remainingTokens.drop(1)
+            }
+
+            val innerExpressions = parseTokens(innerTokens)
+
+            return DontExpression(innerTokens, innerExpressions)
+        }
+    },
     MUL {
         override fun getExpression(tokens: List<Token>): Expression? {
             if (
@@ -148,7 +228,7 @@ enum class ExpressionType {
     abstract fun getExpression(tokens: List<Token>): Expression?
 }
 
-fun parseLine(tokens: List<Token>): List<Expression> {
+fun parseTokens(tokens: List<Token>): List<Expression> {
     var remainingTokens = tokens
     val expressions = mutableListOf<Expression>()
 
