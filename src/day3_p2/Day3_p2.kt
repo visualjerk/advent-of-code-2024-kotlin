@@ -13,71 +13,16 @@ fun main() {
     println(program.evaluate())
 }
 
-enum class TokenType {
-    MUL {
-        val marker = "mul"
-        override fun getToken(line: String): Token? {
-            if (line.startsWith(marker)) {
-                return Token(MUL, marker)
-            }
-            return null
-        }
-    },
-    DONT {
-        val marker = "don't()"
-        override fun getToken(line: String): Token? {
-            if (line.startsWith(marker)) {
-                return Token(DONT, marker)
-            }
-            return null
-        }
-    },
-    DO {
-        val marker = "do()"
-        override fun getToken(line: String): Token? {
-            if (line.startsWith(marker)) {
-                return Token(DO, marker)
-            }
-            return null
-        }
-    },
-    OPEN_BRACKET {
-        val marker = "("
-        override fun getToken(line: String): Token? {
-            if (line.startsWith(marker)) {
-                return Token(OPEN_BRACKET, marker)
-            }
-            return null
-        }
-    },
-    CLOSE_BRACKET {
-        val marker = ")"
-        override fun getToken(line: String): Token? {
-            if (line.startsWith(marker)) {
-                return Token(CLOSE_BRACKET, marker)
-            }
-            return null
-        }
-    },
-    COMMA {
-        val marker = ","
-        override fun getToken(line: String): Token? {
-            if (line.startsWith(marker)) {
-                return Token(COMMA, marker)
-            }
-            return null
-        }
-    },
+enum class TokenType(val marker: String? = null) {
+    MUL("mul"),
+    DONT("don't()"),
+    DO("do()"),
+    OPEN_BRACKET("("),
+    CLOSE_BRACKET( ")"),
+    COMMA(","),
     INTEGER {
         override fun getToken(line: String): Token? {
-            var value = ""
-            var index = 0
-
-            while (line[index].isDigit()) {
-                value += line[index]
-                index++
-            }
-
+            val value = line.takeWhile { it.isDigit() }
             if (value.isNotEmpty()) {
                 return Token(INTEGER, value)
             }
@@ -90,7 +35,14 @@ enum class TokenType {
         }
     };
 
-    abstract fun getToken(line: String): Token?
+    open fun getToken(line: String): Token? {
+        marker?.let {
+            if (line.startsWith(it)) {
+                return Token(this, it)
+            }
+        }
+        return null
+    }
 }
 
 data class Token (val type: TokenType, val value: String)
