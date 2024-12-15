@@ -48,27 +48,23 @@ enum class TokenType(private val marker: String? = null) {
 data class Token (val type: TokenType, val value: String)
 
 fun tokenizeInput(input: String): List<Token> {
-    var remainingInput = input
     val tokens = mutableListOf<Token>()
+    var index = 0
 
-    while (remainingInput.isNotEmpty()) {
-        val token = getNextToken(remainingInput)
+    while (index < input.length) {
+        val token = getNextToken(input.substring(index))
         tokens.add(token)
-        remainingInput = remainingInput.drop(token.value.length)
+        index += token.value.length
     }
 
     return tokens
 }
 
-fun getNextToken(part: String): Token {
-    for (tokenType in TokenType.entries) {
-        val token = tokenType.getToken(part)
+class TokenizationException(part: String) : Exception("Unable to tokenize: $part")
 
-        if (token != null) {
-            return token
-        }
-    }
-    throw Exception("part could not be tokenized: $part")
+fun getNextToken(part: String): Token {
+    return TokenType.entries.firstNotNullOfOrNull { it.getToken(part) }
+        ?: throw TokenizationException(part)
 }
 
 interface Expression {
@@ -91,11 +87,7 @@ data class DoExpression (
     val expressions: List<Expression>
 ): Expression {
     override fun evaluate(): Int {
-        var output = 0
-        for (expression in expressions) {
-            output += expression.evaluate()
-        }
-        return output
+        return expressions.sumOf { it.evaluate() }
     }
 }
 
@@ -115,20 +107,7 @@ enum class ExpressionType {
                 return null
             }
 
-            var remainingTokens = tokens.drop(1)
-            val innerTokens = mutableListOf<Token>()
-
-            while (
-                remainingTokens.isNotEmpty() &&
-                remainingTokens[0].type != TokenType.DO &&
-                remainingTokens[0].type != TokenType.DONT
-            ) {
-                innerTokens.add(remainingTokens[0])
-                remainingTokens = remainingTokens.drop(1)
-            }
-
-            val innerExpressions = parseTokens(innerTokens)
-
+            val (innerTokens, innerExpressions) = parseInnerExpressions(tokens.subList(1, tokens.size))
             return DoExpression(innerTokens, innerExpressions)
         }
     },
@@ -138,20 +117,7 @@ enum class ExpressionType {
                 return null
             }
 
-            var remainingTokens = tokens.drop(1)
-            val innerTokens = mutableListOf<Token>()
-
-            while (
-                remainingTokens.isNotEmpty() &&
-                remainingTokens[0].type != TokenType.DO &&
-                remainingTokens[0].type != TokenType.DONT
-            ) {
-                innerTokens.add(remainingTokens[0])
-                remainingTokens = remainingTokens.drop(1)
-            }
-
-            val innerExpressions = parseTokens(innerTokens)
-
+            val (innerTokens, innerExpressions) = parseInnerExpressions(tokens.subList(1, tokens.size))
             return DontExpression(innerTokens, innerExpressions)
         }
     },
@@ -181,17 +147,17 @@ enum class ExpressionType {
 }
 
 fun parseTokens(tokens: List<Token>): List<Expression> {
-    var remainingTokens = tokens
     val expressions = mutableListOf<Expression>()
+    var index = 0
 
-    while (remainingTokens.isNotEmpty()) {
-        val expression = getNextExpression(remainingTokens)
+    while (index < tokens.size) {
+        val expression = getNextExpression(tokens.subList(index, tokens.size))
 
         if (expression != null) {
             expressions.add(expression)
-            remainingTokens = remainingTokens.drop(expression.tokens.count())
+            index += expression.tokens.size
         } else {
-            remainingTokens = remainingTokens.drop(1)
+            index++
         }
     }
 
@@ -199,13 +165,21 @@ fun parseTokens(tokens: List<Token>): List<Expression> {
 }
 
 fun getNextExpression(tokens: List<Token>): Expression? {
-    for (expressionType in ExpressionType.entries) {
-        val expression = expressionType.getExpression(tokens)
+    return ExpressionType.entries.firstNotNullOfOrNull { it.getExpression(tokens) }
+}
 
-        if (expression != null) {
-            return expression
-        }
+fun parseInnerExpressions(tokens: List<Token>): Pair<List<Token>, List<Expression>> {
+    var endIndex = 0
+
+    while (
+        endIndex < tokens.size &&
+        tokens[endIndex].type != TokenType.DO &&
+        tokens[endIndex].type != TokenType.DONT
+    ) {
+        endIndex++
     }
 
-    return null
+    val innerTokens = tokens.subList(0, endIndex)
+    val innerExpressions = parseTokens(innerTokens)
+    return Pair(innerTokens, innerExpressions)
 }
