@@ -13,7 +13,7 @@ fun main() {
     println(program.evaluate())
 }
 
-enum class TokenType(val marker: String? = null) {
+enum class TokenType(private val marker: String? = null) {
     MUL("mul"),
     DONT("don't()"),
     DO("do()"),
